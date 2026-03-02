@@ -1,6 +1,8 @@
 # 📰 News Reader
 
-A Flipboard-style news reader built with a **React + TypeScript + Vite** frontend and a lightweight **Express** proxy backend. Browse headlines by category, search for topics, and save your favourite articles — all without exposing your API token to the browser.
+A Flipboard-style news reader built with a **React + TypeScript + Vite** frontend and a lightweight proxy backend. Browse headlines by category, search for topics, and save your favourite articles — all without exposing your API token to the browser.
+
+> **Live demo:** deployed on [Vercel](https://vercel.com) — the frontend is served as a static site and the news proxy runs as a Vercel Serverless Function.
 
 ---
 
@@ -16,11 +18,12 @@ A Flipboard-style news reader built with a **React + TypeScript + Vite** fronten
 
 ## Tech Stack
 
-| Layer    | Technology                                |
-| -------- | ----------------------------------------- |
-| Frontend | React 18, TypeScript, Vite                |
-| Backend  | Node.js, Express, node-fetch, dotenv, CORS|
-| News API | [TheNewsAPI](https://www.thenewsapi.com/) |
+| Layer    | Technology                                          |
+| -------- | --------------------------------------------------- |
+| Frontend | React 18, TypeScript, Vite                          |
+| Backend (dev) | Node.js, Express, node-fetch, dotenv, CORS     |
+| Backend (prod) | Vercel Serverless Function (`api/news/all.js`) |
+| News API | [TheNewsAPI](https://www.thenewsapi.com/)           |
 
 ---
 
@@ -28,17 +31,21 @@ A Flipboard-style news reader built with a **React + TypeScript + Vite** fronten
 
 ```
 news-reader/
-├── web/            # React + Vite frontend (port 5176)
+├── api/
+│   └── news/
+│       └── all.js      # Vercel Serverless Function (production proxy)
+├── web/                # React + Vite frontend (port 5176)
 │   ├── src/
 │   │   ├── App.tsx
 │   │   ├── components/
 │   │   └── lib/
 │   └── package.json
-├── server/         # Express proxy backend (port 5177)
+├── server/             # Express proxy backend (local dev, port 5177)
 │   ├── server.js
 │   ├── .env.example
 │   └── package.json
-└── package.json    # Root — runs both services with `concurrently`
+├── vercel.json         # Vercel build + routing configuration
+└── package.json        # Root — runs both services with `concurrently`
 ```
 
 ---
@@ -109,9 +116,43 @@ Run these from the **project root**:
 
 ---
 
+## Deploying to Vercel
+
+The project ships with a `vercel.json` that configures everything automatically.
+
+### How it works on Vercel
+
+| Concern      | Solution                                                                 |
+| ------------ | ------------------------------------------------------------------------ |
+| Frontend     | Built with `vite build`, served from `web/dist` as a static site        |
+| API proxy    | `api/news/all.js` is deployed as a Vercel Serverless Function            |
+| API token    | Set as an environment variable in the Vercel dashboard — never in code   |
+
+### Deploy steps
+
+1. **Import** the repository into [Vercel](https://vercel.com/new).
+2. In the Vercel dashboard, go to **Settings → Environment Variables** and add:
+
+   | Name                 | Value                        |
+   | -------------------- | ---------------------------- |
+   | `THENEWSAPI_TOKEN`   | Your TheNewsAPI bearer token |
+
+3. Click **Deploy**. Vercel reads `vercel.json` and handles the rest.
+
+> The `vercel.json` configuration in this project:
+> ```json
+> {
+>   "buildCommand": "cd web && npm install && npm run build",
+>   "outputDirectory": "web/dist",
+>   "installCommand": "echo 'skip root install'"
+> }
+> ```
+
+---
+
 ## API Proxy Routes
 
-The Express server exposes two routes (see `server/README.md` for full details):
+The proxy (Express locally, Vercel Serverless Function in production) exposes the following routes (see `server/README.md` for full local-dev details):
 
 | Method | Path              | Description                        |
 | ------ | ----------------- | ---------------------------------- |
@@ -133,12 +174,14 @@ The Express server exposes two routes (see `server/README.md` for full details):
 
 ## Environment Variables
 
-Create `server/.env` (use `server/.env.example` as a template):
+**Local development** — create `server/.env` (use `server/.env.example` as a template):
 
 | Variable             | Required | Description                            |
 | -------------------- | -------- | -------------------------------------- |
 | `THENEWSAPI_TOKEN`   | ✅ Yes   | Your TheNewsAPI bearer token           |
 | `PORT`               | ❌ No    | Proxy server port (default: `5177`)    |
+
+**Vercel production** — set `THENEWSAPI_TOKEN` in the Vercel dashboard under **Settings → Environment Variables**. The `PORT` variable is not used on Vercel.
 
 > **Never** commit your `.env` file or expose your API token publicly.
 
